@@ -1,0 +1,37 @@
+---
+title: "AA_tidying"
+author: "Sol Bixby"
+date: "10/30/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r, echo =FALSE}
+library(tidyverse)
+library(readr)
+```
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+AA_imported <- read_csv("~/Chem 313/Chemistry_313_ICPMS_Lab/data/AA_Data.csv", col_types = cols(Analysis = col_number()), 
+    skip = 4)
+
+
+View(AA_imported)
+
+
+sample_key <- read_csv("~/Chem 313/Chemistry_313_ICPMS_Lab/data/Sample_Key.csv")
+
+View(sample_key)
+
+AA_merged<-merge(AA_imported, sample_key)
+
+AA_tidy<-filter(AA_merged, Type == "Sample")
+
+View(AA_tidy)
+
+write.csv(AA_tidy, file = "~/Chem 313/Chemistry_313_ICPMS_Lab/data/AA_tidy.csv")
+```
