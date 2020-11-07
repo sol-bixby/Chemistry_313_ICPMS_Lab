@@ -1,0 +1,26 @@
+---
+title: "Cr_Analysis"
+author: "Sol Bixby"
+date: "11/6/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r, echo =FALSE}
+library(tidyverse)
+library(readr)
+```
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+tidyCrData <- read_csv("~/Chem 313/Chemistry_313_ICPMS_Lab/data/tidy_AA.csv")
+
+sampleSites <- unique(filter(tidyCrData, site!="QC", site!="MB")$site)
+
+AA_cal <- NULL
+
+cal <- tidyCrData %>%
+  filter(type == "Cal1"|type=="Cal2"|type=="Cal3")%>%
+  select()
+```
