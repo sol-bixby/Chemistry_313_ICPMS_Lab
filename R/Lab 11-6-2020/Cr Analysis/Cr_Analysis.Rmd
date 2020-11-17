@@ -13,14 +13,91 @@ library(tidyverse)
 library(readr)
 ```
 
+
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
-tidyCrData <- read_csv("~/Chem 313/Chemistry_313_ICPMS_Lab/data/tidy_AA.csv")
+AA <- read_csv("~/Chem 313/Chemistry_313_ICPMS_Lab/data/tidy_AA.csv")
 
-sampleSites <- unique(filter(tidyCrData, site!="QC", site!="MB")$site)
+sample_sites <- unique(filter(AA, site!="QC", site!="MB")$site)
+```
 
+```{r Calibration}
 AA_cal <- NULL
 
-cal <- tidyCrData %>%
-  filter(type == "Cal1"|type=="Cal2"|type=="Cal3")%>%
-  select()
+cal <- AA %>%
+  filter(type == "CalStd"|type=="CalStd2"|type=="CalStd4")%>%
+  select(concentration, mean_abs, percent_rsd)
+
+  w<-1/(cal$mean_abs*cal$percent_rsd)^2
+  model<- lm(cal$mean_abs ~ cal$concentration, weights = w)
+
+  slope <- model$coefficients[2]
+  intercept<-model$coefficients[1]
+  slope_std<-summary(model)$coefficients[2,2]
+  intercept_std<-summary(model)$coefficients[1,2]
+
+  plot(cal$mean_abs ~ cal$concentration,
+      xlab= paste("Concentration of Cr (ppb)"), #units from the standard solution prepared at OHSU (ug/L) (is that second part valid?)
+      ylab= "Absolute Mean")+   #units????
+    abline(model, col="red")+
+    title(paste("Calibration for Cr"))
+  
+  equation<- tibble(slope, slope_std, intercept, intercept_std)
+  AA_cal<-rbind(AA_cal, equation)
+
+AA_cal
+
+
+remove(equation, cal, slope, slope_std, intercept, intercept_std, w, model)
+```
+
+```{r}
+#THANK YOU EMMA
+AA_MBQC_function <- function(Site){
+  A <- AA%>%
+  filter(site==Site)
+  Acalib <- AA_cal
+  Aslope <- AA_cal$slope
+  Aintercept <- AA_cal$intercept
+  Aabs <- A$mean_abs
+  Aconc <- (Aabs - Aintercept)/Aslope
+  Aconcunits <- (Aconc)*(A$total_volume/1000)
+  mean(Aconcunits)
+  sd(Aconcunits)
+  error_95 <- qt(0.95, df=length(Aconcunits)-1)*sd(Aconcunits)/(sqrt(length(Aconcunits)))
+  #copy and paste her for every 95 CI
+ AA_conc_and_stats <- data.frame(site=Site, Aconcunits, mean(Aconcunits), sd(Aconcunits), error_95)
+}
+
+AA_samples_concentration <- function(Site){
+  B <- AA%>%
+    filter(site==Site)
+  Bcalib <- AA_cal
+  Bslope <- AA_cal$slope
+  Bintercept <- AA_cal$intercept
+  Babs <- B$mean_abs
+  Bconc <- (Babs - Bintercept)/Bslope
+  Bconcunits <- Bconc*(B$total_volume/1000)/(B$mass_of_soil/1000)
+  mean(Bconcunits)
+  sd(Bconcunits)
+  error_95 <- qt(0.95, df=length(Bconcunits)-1)*sd(Bconcunits)/(sqrt(length(Bconcunits)))
+  AA_sample_conc_and_stats <- data.frame(site=Site, Bconcunits, mean(Bconcunits), sd(Bconcunits), error_95)
+}
+
+AAMB <- AA_MBQC_function("MB")
+AAQC <- AA_MBQC_function("QC")
+AAA <- AA_samples_concentration("A")
+AAB <- AA_samples_concentration("B")
+AAC <- AA_samples_concentration("C")
+AAD <- AA_samples_concentration("D")
+AAE <- AA_samples_concentration("E")
+AAF <- AA_samples_concentration("F")
+
+print.data.frame(AAMB)
+print.data.frame(AAQC)
+print.data.frame(AAA)
+print.data.frame(AAB)
+print.data.frame(AAC)
+print.data.frame(AAD)
+print.data.frame(AAE)
+print.data.frame(AAF)
 ```

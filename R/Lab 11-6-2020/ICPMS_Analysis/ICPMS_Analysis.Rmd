@@ -12,6 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r, echo =FALSE}
 library(tidyverse)
 library(readr)
+library(ggplot2)
 ```
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
@@ -75,7 +76,7 @@ sample_analysis<-function(unique_site){
       
       x<-(y-b)/m
       
-      RSD<-sample_data$rsd
+      RSD<-(sample_data$rsd/100)*sample_data$cps
       CPS<-sample_data$cps
       
       e_yb<-sqrt((RSD)^2 + (b_e)^2)
@@ -155,7 +156,7 @@ dil_e<-sqrt((dil_1010_e/1010)^2 + (1/10)^2)
 
 sample_data<-merge(ICPMS,sample_data_mb)%>%
   unique()%>%
-  mutate(conc_blanked = conc_dil_blanked*(total_volume/1000)/(mass_of_soil/1000)*101,
+  mutate(conc_blanked = (conc_dil_blanked*(total_volume/1000)/(mass_of_soil/1000)*101)/1000,
          conc_blanked_error = conc_blanked*
            sqrt((conc_dil_blanked_error/conc_dil_blanked)^2)+
            (dil_e/101)^2 +
@@ -178,4 +179,37 @@ sample_data<-merge(ICPMS,sample_data_mb)%>%
     -conc_dil_blanked_error,
     -conc_dil,
     -conc_dil_error)
+```
+
+
+
+```{r}
+#results
+results_ICPMS<-sample_data%>%
+  group_by(site, metal)%>%
+  summarize(mean_conc = mean(conc_blanked),
+            sd_conc = sd(conc_blanked),
+                         n = n())%>%
+              mutate(se = (qnorm(0.975)*sd_conc/sqrt(n)),
+                     lower_ci = mean_conc - se,
+                     upper_ci = mean_conc + se)
+
+View(results_ICPMS)
+```
+
+```{r}
+#graphics
+ggplot(results_ICPMS,
+       aes(x = site, y = mean_conc, color = metal))+
+  geom_point(size=3)+
+  ylab("Concentration (ppm)")+
+  xlab("Sampling Site")
+  
+```
+
+```{r}
+#tables
+tables_data<-results_ICPMS%>%
+  group_by(metal)
+View(tables_data)
 ```
